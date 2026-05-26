@@ -1,0 +1,201 @@
+﻿import type IEntity from "../IEntity.ts";
+import type Game from "../../General/Game.ts";
+import type RGBA from "../../General/RGBA.ts";
+import type Animation from "../../Animations/Animation.ts";
+import {ColorTreatment} from "../../Utils/Display/ColorTreatment.ts";
+import Frame from "../../Animations/Frame.ts";
+import {FrameType} from "../../Animations/FrameType.ts";
+import clamp from "../../Utils/Math/clamp.ts";
+
+export default class Rectangle<GT extends Game<GT>> implements IEntity<GT>
+{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+    rotation: number;
+    game: GT;
+    protected color: RGBA
+    hidden: boolean;
+    tags: Set<number>;
+    protected colorStr: string = "#FFFFFF"
+    animation: Animation | null = null
+    layer: number = 0;
+    opacity: number = 1
+
+    get Width()
+    {
+        return this.width * this.scale;
+    }
+
+    get Height()
+    {
+        return this.height * this.scale;
+    }
+
+    get Color()
+    {
+        return this.color;
+    }
+
+    set Color(value: RGBA)
+    {
+        this.color = value;
+        this.colorStr = this.color.getStr()
+    }
+
+    constructor(x: number, y: number, width: number, height: number, scale: number, rotation: number, game: GT, color: RGBA, tags: Set<number> = new Set<number>()) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.scale = scale;
+        this.rotation = rotation;
+        this.game = game;
+        this.color = color;
+        this.colorStr = this.color.getStr();
+        this.hidden = false;
+        this.tags = tags;
+    }
+
+    public drawAt(pos: [x: number, y: number]) {
+
+        this.updateAnimation()
+        if (!this.hidden) {
+            this.game.ctx.save()
+            this.drawBody(pos)
+            this.game.ctx.restore();
+        }
+    }
+
+    get displayPos(): [x: number, y: number]
+    {
+        return [this.x + this.game.xOffsetGlobal, this.y + this.game.yOffsetGlobal];
+    }
+
+    public draw()
+    {
+        this.drawAt(this.displayPos)
+    }
+
+    protected drawBody(pos: [x: number, y: number])
+    {
+        this.rotateCanvas(pos)
+        if (this.animation == null)
+            this.drawNormal(pos)
+        else
+            this.drawAnimated(pos)
+    }
+
+    protected drawNormal(pos: [x: number, y: number]): void
+    {
+        this.game.ctx.fillStyle = this.colorStr
+        this.game.ctx.fillRect(pos[0] - this.Width / 2, pos[1] - this.Height / 2, this.Width, this.Height);
+    }
+
+    protected drawAnimated(pos: [x: number, y: number]): void
+    {
+        const frame: Frame = this.animation!.current
+
+        let w: number
+        let h: number
+
+        switch (frame.frameType)
+        {
+            case FrameType.OFFSET:
+                const color = this.getNewColor(frame)
+                this.game.ctx.fillStyle = color.getStr()
+
+                w = this.width * this.getScale(frame)
+                h = this.height * this.getScale(frame)
+
+                this.game.ctx.fillRect(pos[0] - w / 2, pos[1] - h / 2, w, h);
+            break;
+
+            case FrameType.UPDATE:
+                if (this.animation!.newFrame)
+                {
+                    this.Color = this.getNewColor(frame)
+                    this.scale = this.getScale(frame)
+                }
+                this.game.ctx.fillStyle = this.colorStr
+                this.game.ctx.fillRect(pos[0] - this.Width / 2, pos[1] - this.Height / 2, this.Width, this.Height);
+            break;
+
+            case FrameType.OBJECTIVE:
+                this.game.ctx.fillStyle = frame.colorOffset.getStr()
+
+                 w = this.width * frame.scaleMultiplier
+                 h = this.height * frame.scaleMultiplier
+
+                this.game.ctx.fillRect(pos[0] - w / 2, pos[1] - h / 2, w, h);
+            break;
+
+            case FrameType.REPLACE:
+                if (this.animation!.newFrame)
+                {
+                    this.Color = frame.colorOffset
+                    this.scale = frame.scaleMultiplier
+                }
+                this.game.ctx.fillStyle = this.colorStr
+                this.game.ctx.fillRect(pos[0] - this.Width / 2, pos[1] - this.Height / 2, this.Width, this.Height);
+            break;
+        }
+    }
+
+    private getNewColor(frame: Frame)
+    {
+        return frame.colorTreatment == ColorTreatment.INTERPOLATE
+            ? this.color.interpolate(frame.colorOffset)
+            : this.color.add(frame.colorOffset)
+    }
+
+    private getScale(frame: Frame)
+    {
+        return this.scale * frame.scaleMultiplier
+    }
+
+    rotateCanvas(pos: [x: number, y: number])
+    {
+        this.game.ctx.translate(pos[0], pos[1]);
+        this.game.ctx.rotate(this.rotation)
+        this.game.ctx.translate(-pos[0], -pos[1]);
+    }
+
+    private updateAnimation()
+    {
+        if (this.animation != null) {
+            this.animation.tick()
+            if (this.animation.finished)
+                this.animation = null
+        }
+    }
+
+    public tagged(tag: number)
+    {
+        return this.tags.has(tag)
+    }
+
+    update() {
+
+    }
+
+    start() {
+
+    }
+
+    animate(animation: Animation)
+    {
+        this.animation = animation;
+        animation.reset()
+    }
+
+    public get Opacity() {
+        return this.opacity
+    }
+
+    public set Opacity(v: number) {
+        this.opacity = clamp(v, 0, 1)
+    }
+}

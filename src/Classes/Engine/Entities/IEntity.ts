@@ -1,0 +1,26 @@
+﻿import type Game from "../General/Game.ts";
+
+export default interface IEntity<GT extends Game<GT>> {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+    rotation: number;
+    game: GT;
+    hidden: boolean;
+    tags: Set<number>;
+    layer: number;
+    opacity: number;
+
+    draw(): void
+    drawAt(pos: [x: number, y: number]): void
+    get displayPos(): [x: number, y: number]
+    start(): void
+    update(): void
+    tagged(tag: number): boolean
+    get Height(): number
+    get Width(): number
+    get Opacity(): number
+    set Opacity(v: number)
+}
