@@ -1,4 +1,6 @@
 import GameEntity from "../Engine/Entities/Standard/Entity";
+import type IHitbox from "../Engine/Hitboxes/IHitbox";
+import { Tags } from "../Tags";
 import type { TowerDefense } from "../TowerDefense";
 
 export type PathPoint = {
@@ -94,8 +96,13 @@ class PathFollower {
 }
 
 export default abstract class Enemy extends GameEntity<TowerDefense> {
-    private pathFollower: PathFollower;
     private lookAtNextPoint: boolean;
+    protected pathFollower: PathFollower;
+    public abstract hitbox: IHitbox;
+
+    protected isOver(): boolean {
+        return this.pathFollower.isOver;
+    }
     constructor(
         pointsToFollow: PathPoint[],
         scale: number,
@@ -106,6 +113,7 @@ export default abstract class Enemy extends GameEntity<TowerDefense> {
         const pathFollower = new PathFollower(pointsToFollow);
         const rotation = lookAtNextPoint ? pathFollower.rotation : 0;
         super(pathFollower.x, pathFollower.y, scale, rotation, game, texture);
+        this.tags.add(Tags.ENEMY);
 
         this.pathFollower = new PathFollower(pointsToFollow);
         this.lookAtNextPoint = lookAtNextPoint;
