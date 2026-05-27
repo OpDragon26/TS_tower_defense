@@ -10,9 +10,9 @@ export type PathPoint = {
 class PathFollower {
     public x: number;
     public y: number;
-    public rotation: number;
+    public rotation: number = 0;
     private readonly pointsToVisit: PathPoint[];
-    private directionVector: [number, number];
+    private directionVector: [number, number] = [0, 0];
     private lastVisitedPointIndex: number = 0;
 
     get isOver(): boolean {
@@ -49,9 +49,6 @@ class PathFollower {
         const distCurrent =
             Math.pow(this.x - this.currentPoint.coords[0], 2) +
             Math.pow(this.y - this.currentPoint.coords[1], 2);
-        const distNext =
-            Math.pow(this.x - this.nextPoint.coords[0], 2) +
-            Math.pow(this.y - this.nextPoint.coords[1], 2);
 
         const distCurrentNext =
             Math.pow(
@@ -60,10 +57,7 @@ class PathFollower {
             ) +
             Math.pow(this.nextPoint.coords[1] - this.currentPoint.coords[1], 2);
 
-        if (
-            Math.sqrt(distCurrent) + Math.sqrt(distNext) >=
-            Math.sqrt(distCurrentNext) + 0.01
-        ) {
+        if (distCurrent >= distCurrentNext + 0.01) {
             this.x = this.nextPoint.coords[0];
             this.y = this.nextPoint.coords[1];
             this.lastVisitedPointIndex += 1;
